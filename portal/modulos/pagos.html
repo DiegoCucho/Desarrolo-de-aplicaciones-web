@@ -65,7 +65,10 @@
 <nav class="navbar navbar-expand-lg navbar-banco">
   <div class="container-fluid px-4">
     <a class="navbar-brand" href="dashboard.html"><i class="bi bi-bank me-2"></i>MI BANCO</a>
-    <div class="collapse navbar-collapse">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
       <ul class="navbar-nav ms-auto align-items-center gap-2">
         <li class="nav-item">
           <span class="nav-link" style="color:var(--color-acento);font-weight:600">
@@ -81,6 +84,7 @@
 </nav>
 
 <div class="portal-layout">
+  <!-- Sidebar - responsive con clases Bootstrap -->
   <nav class="sidebar d-none d-lg-block">
     <ul class="nav flex-column">
       <li><a class="nav-link" href="dashboard.html"><i class="bi bi-grid-1x2"></i> Dashboard</a></li>
@@ -111,51 +115,52 @@
                 <label class="form-label fw-semibold">Tipo de servicio</label>
                 <div class="row g-2" id="servicioSelector">
                   <div class="col-6">
-                    <input type="radio" class="btn-check" name="servicioRadio" id="srvAgua"   value="agua"     required>
+                    <input type="radio" class="btn-check" name="servicioRadio" id="srvAgua" value="agua" required>
                     <label class="btn btn-outline-primary w-100 d-flex align-items-center gap-2" for="srvAgua">
                       <i class="bi bi-droplet fs-5"></i> Agua
                     </label>
                   </div>
                   <div class="col-6">
-                    <input type="radio" class="btn-check" name="servicioRadio" id="srvLuz"    value="luz">
+                    <input type="radio" class="btn-check" name="servicioRadio" id="srvLuz" value="luz">
                     <label class="btn btn-outline-warning w-100 d-flex align-items-center gap-2" for="srvLuz">
                       <i class="bi bi-lightning fs-5"></i> Luz
                     </label>
                   </div>
                   <div class="col-6">
-                    <input type="radio" class="btn-check" name="servicioRadio" id="srvCable"  value="cable">
+                    <input type="radio" class="btn-check" name="servicioRadio" id="srvCable" value="cable">
                     <label class="btn btn-outline-danger w-100 d-flex align-items-center gap-2" for="srvCable">
                       <i class="bi bi-tv fs-5"></i> Cable
                     </label>
                   </div>
                   <div class="col-6">
-                    <input type="radio" class="btn-check" name="servicioRadio" id="srvTel"    value="telefono">
+                    <input type="radio" class="btn-check" name="servicioRadio" id="srvTel" value="telefono">
                     <label class="btn btn-outline-success w-100 d-flex align-items-center gap-2" for="srvTel">
                       <i class="bi bi-phone fs-5"></i> Teléfono
                     </label>
                   </div>
                   <div class="col-6">
-                    <input type="radio" class="btn-check" name="servicioRadio" id="srvGas"    value="gas">
+                    <input type="radio" class="btn-check" name="servicioRadio" id="srvGas" value="gas">
                     <label class="btn btn-outline-secondary w-100 d-flex align-items-center gap-2" for="srvGas">
                       <i class="bi bi-fire fs-5"></i> Gas
                     </label>
                   </div>
                 </div>
+                <div class="invalid-feedback" id="servicioFeedback">Selecciona un tipo de servicio</div>
               </div>
 
               <div class="mb-3">
                 <label class="form-label fw-semibold">N° de contrato / recibo</label>
-                <input type="text" id="contrato" class="form-control"
-                       placeholder="Ej: 1234567890" required>
+                <input type="text" id="contrato" class="form-control" placeholder="Ej: 1234567890" required>
+                <div class="invalid-feedback">Ingresa el número de contrato</div>
               </div>
 
               <div class="mb-3">
                 <label class="form-label fw-semibold">Monto a pagar (S/)</label>
                 <div class="input-group">
                   <span class="input-group-text fw-bold">S/</span>
-                  <input type="number" id="montoPago" class="form-control"
-                         placeholder="0.00" min="1" step="0.01" required>
+                  <input type="number" id="montoPago" class="form-control" placeholder="0.00" min="1" step="0.01" required>
                 </div>
+                <div class="invalid-feedback">Ingresa un monto válido mayor a S/ 0</div>
               </div>
 
               <div class="mb-4">
@@ -163,6 +168,7 @@
                 <select id="cuentaOrigen" class="form-select" required>
                   <option value="">Cargando cuentas...</option>
                 </select>
+                <div class="invalid-feedback">Selecciona una cuenta de origen</div>
               </div>
 
               <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
@@ -194,127 +200,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script type="module">
-  import { supabase, requireAuth, formatSoles, formatFecha, showToast } from '../js/supabase.js';
-
-  const user = await requireAuth();
-  document.getElementById('userName').textContent = user.user_metadata?.full_name?.split(' ')[0] || user.email;
-
-  document.getElementById('btnLogout').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.replace('/index.html');
-  });
-
-  // ── Cargar cuentas del usuario ─────────────────────────
-  const { data: cuentas } = await supabase
-    .from('cuentas').select('*').eq('user_id', user.id);
-
-  const selectCuenta = document.getElementById('cuentaOrigen');
-  if (cuentas && cuentas.length > 0) {
-    selectCuenta.innerHTML = cuentas.map(c =>
-      `<option value="${c.id}">${c.tipo === 'corriente' ? 'Cta. Corriente' : 'Cta. Ahorro'} — ${formatSoles(c.saldo)}</option>`
-    ).join('');
-  }
-
-  // ── Submit formulario → abrir modal ────────────────────
-  const modal = new bootstrap.Modal(document.getElementById('modalConfirmar'));
-  let datosPago = null;
-
-  document.getElementById('formPago').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const servicio  = document.querySelector('input[name="servicioRadio"]:checked')?.value;
-    const contrato  = document.getElementById('contrato').value.trim();
-    const monto     = parseFloat(document.getElementById('montoPago').value);
-    const cuentaId  = document.getElementById('cuentaOrigen').value;
-    const cuentaLabel = selectCuenta.options[selectCuenta.selectedIndex]?.text;
-
-    if (!servicio) { alert('Selecciona un servicio.'); return; }
-    if (!contrato) { alert('Ingresa el número de contrato.'); return; }
-    if (!monto || monto <= 0) { alert('Ingresa un monto válido.'); return; }
-
-    datosPago = { servicio, contrato, monto, cuentaId, cuentaLabel };
-
-    // Llenar modal
-    document.getElementById('confServicio').textContent = servicio.toUpperCase();
-    document.getElementById('confContrato').textContent = contrato;
-    document.getElementById('confMonto').textContent    = formatSoles(monto);
-    document.getElementById('confCuenta').textContent   = cuentaLabel;
-
-    modal.show();
-  });
-
-  // ── Confirmar y guardar pago ───────────────────────────
-  document.getElementById('btnConfirmarPago').addEventListener('click', async () => {
-    if (!datosPago) return;
-
-    document.getElementById('btnConfText').classList.add('d-none');
-    document.getElementById('btnConfSpinner').classList.remove('d-none');
-
-    const { error } = await supabase.from('pagos').insert({
-      user_id:          user.id,
-      servicio:         datosPago.servicio,
-      numero_contrato:  datosPago.contrato,
-      monto:            datosPago.monto,
-      estado:           'completado'
-    });
-
-    document.getElementById('btnConfText').classList.remove('d-none');
-    document.getElementById('btnConfSpinner').classList.add('d-none');
-    modal.hide();
-
-    if (error) {
-      showToast('Error al procesar el pago. Intenta nuevamente.', 'danger');
-      return;
-    }
-
-    showToast(`Pago de ${datosPago.servicio.toUpperCase()} realizado con éxito por ${formatSoles(datosPago.monto)}`, 'success');
-    document.getElementById('formPago').reset();
-    datosPago = null;
-    cargarHistorial();
-  });
-
-  // ── Historial de pagos ─────────────────────────────────
-  async function cargarHistorial() {
-    const { data: pagos } = await supabase
-      .from('pagos').select('*')
-      .eq('user_id', user.id)
-      .order('fecha', { ascending: false })
-      .limit(10);
-
-    const el = document.getElementById('historialPagos');
-    const iconos = { agua:'droplet', luz:'lightning', cable:'tv', telefono:'phone', gas:'fire' };
-
-    if (!pagos || pagos.length === 0) {
-      el.innerHTML = `<p class="text-muted text-center py-4">Sin pagos registrados aún.</p>`;
-      return;
-    }
-
-    el.innerHTML = `
-      <ul class="list-group list-group-flush">
-        ${pagos.map(p => `
-          <li class="list-group-item d-flex justify-content-between align-items-center px-3">
-            <div class="d-flex align-items-center gap-3">
-              <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
-                   style="width:36px;height:36px">
-                <i class="bi bi-${iconos[p.servicio] || 'receipt'} text-primary"></i>
-              </div>
-              <div>
-                <div class="fw-semibold small text-capitalize">${p.servicio}</div>
-                <div class="text-muted" style="font-size:.75rem">
-                  N° ${p.numero_contrato} · ${formatFecha(p.fecha)}
-                </div>
-              </div>
-            </div>
-            <div class="text-end">
-              <div class="monto-debito fw-bold small">- ${formatSoles(p.monto)}</div>
-              <span class="badge bg-success-subtle text-success" style="font-size:.7rem">Completado</span>
-            </div>
-          </li>
-        `).join('')}
-      </ul>`;
-  }
-
-  cargarHistorial();
-</script>
+<script type="module" src="../js/pagos.js"></script>
 </body>
 </html>
