@@ -1,0 +1,287 @@
+import { supabase } from './supabase.js';
+
+// Configurar event listeners
+function setupEventListeners() {
+  // Validación en tiempo real de contraseñas
+  const passwordConfirm = document.getElementById('passwordConfirm');
+  const password = document.getElementById('password');
+  
+  passwordConfirm.addEventListener('input', () => {
+    const pwd = password.value;
+    const confirm = passwordConfirm.value;
+    const mismatchDiv = document.getElementById('pwdMismatch');
+    
+    if (pwd !== confirm && confirm !== '') {
+      mismatchDiv.classList.remove('d-none');
+      passwordConfirm.classList.add('is-invalid');
+    } else {
+      mismatchDiv.classList.add('d-none');
+      passwordConfirm.classList.remove('is-invalid');
+    }
+  });
+  
+  // Validación en tiempo real para nombre
+  const nombreInput = document.getElementById('nombre');
+  nombreInput.addEventListener('input', () => {
+    if (nombreInput.value.trim().length >= 3) {
+      nombreInput.classList.remove('is-invalid');
+    }
+  });
+  
+  // Validación en tiempo real para email
+  const emailInput = document.getElementById('email');
+  emailInput.addEventListener('input', () => {
+    if (emailInput.value.trim() && emailInput.checkValidity()) {
+      emailInput.classList.remove('is-invalid');
+    }
+  });
+  
+  // Validación en tiempo real para password
+  password.addEventListener('input', () => {
+    if (password.value.length >= 8) {
+      password.classList.remove('is-invalid');
+    }
+  });
+  
+  // Submit del formulario
+  const form = document.getElementById('formRegistro');
+  form.addEventListener('submit', handleSubmit);
+}
+
+// Validar formulario con Bootstrap
+function validarFormulario() {
+  const form = document.getElementById('formRegistro');
+  const nombre = document.getElementById('nombre').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const passwordConfirm = document.getElementById('passwordConfirm').value;
+  
+  let isValid = true;
+  
+  // Resetear validaciones
+  form.classList.remove('was-validated');
+  
+  // Validar nombre
+  if (!nombre || nombre.length < 3) {
+    document.getElementById('nombre').classList.add('is-invalid');
+    isValid = false;
+  } else {
+    document.getElementById('nombre').classList.remove('is-invalid');
+  }
+  
+  // Validar email
+  const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+  if (!email || !emailRegex.test(email)) {
+    document.getElementById('email').classList.add('is-invalid');
+    isValid = false;
+  } else {
+    document.getElementById('email').classList.remove('is-invalid');
+  }
+  
+  // Validar password
+  if (!password || password.length < 8) {
+    document.getElementById('password').classList.add('is-invalid');
+    isValid = false;
+  } else {
+    document.getElementById('password').classList.remove('is-invalid');
+  }
+  
+  // Validar confirmación de password
+  if (!passwordConfirm || passwordConfirm.length < 8) {
+    document.getElementById('passwordConfirm').classList.add('is-invalid');
+    isValid = false;
+  } else {
+    document.getElementById('passwordConfirm').classList.remove('is-invalid');
+  }
+  
+  // Validar que coincidan
+  if (password !== passwordConfirm) {
+    document.getElementById('pwdMismatch').classList.remove('d-none');
+    document.getElementById('passwordConfirm').classList.add('is-invalid');
+    isValid = false;
+  } else {
+    document.getElementById('pwdMismatch').classList.add('d-none');
+  }
+  
+  if (!isValid) {
+    form.classList.add('was-validated');
+  }
+  
+  return isValid;
+}
+
+// Mostrar/ocultar spinner
+function setLoading(loading) {
+  const btnText = document.getElementById('btnText');
+  const btnSpinner = document.getElementById('btnSpinner');
+  
+  if (loading) {
+    btnText.classList.add('d-none');
+    btnSpinner.classList.remove('d-none');
+  } else {
+    btnText.classList.remove('d-none');
+    btnSpinner.classList.add('d-none');
+  }
+}
+
+// Mostrar error
+function showError(message) {
+  const alertError = document.getElementById('alertError');
+  const alertMsg = document.getElementById('alertMsg');
+  alertMsg.textContent = message;
+  alertError.classList.remove('d-none');
+  
+  // Ocultar después de 5 segundos
+  setTimeout(() => {
+    alertError.classList.add('d-none');
+  }, 5000);
+}
+
+// Mostrar éxito
+function showSuccess() {
+  const alertSuccess = document.getElementById('alertSuccess');
+  alertSuccess.classList.remove('d-none');
+  
+  // Limpiar formulario
+  document.getElementById('formRegistro').reset();
+  document.getElementById('formRegistro').classList.remove('was-validated');
+}
+
+// Crear cuentas demo para el usuario
+async function crearCuentasDemo(userId) {
+  try {
+    // Cuenta corriente
+    const { data: cc, error: errorCC } = await supabase.from('cuentas').insert({
+      user_id: userId,
+      tipo: 'corriente',
+      numero_cuenta: '019-' + Math.floor(Math.random() * 9000000 + 1000000),
+      saldo: 4250.00,
+      moneda: 'PEN'
+    }).select().single();
+    
+    if (errorCC) {
+      console.error('Error creando cuenta corriente:', errorCC);
+    }
+    
+    // Cuenta ahorro
+    const { data: ca, error: errorCA } = await supabase.from('cuentas').insert({
+      user_id: userId,
+      tipo: 'ahorro',
+      numero_cuenta: '019-' + Math.floor(Math.random() * 9000000 + 1000000),
+      saldo: 12875.50,
+      moneda: 'PEN'
+    }).select().single();
+    
+    if (errorCA) {
+      console.error('Error creando cuenta ahorro:', errorCA);
+    }
+    
+    // Cuenta de ahorro detalle
+    const { error: errorDetalle } = await supabase.from('cuentas_ahorro').insert({
+      user_id: userId,
+      saldo: 12875.50,
+      meta_ahorro: 20000,
+      tasa_interes: 3.5,
+      fecha_apertura: new Date().toISOString().split('T')[0]
+    });
+    
+    if (errorDetalle) {
+      console.error('Error creando detalle ahorro:', errorDetalle);
+    }
+    
+    // Transacciones de ejemplo
+    const txns = [];
+    
+    if (cc) {
+      txns.push(
+        { user_id: userId, cuenta_id: cc.id, tipo: 'debito', descripcion: 'Pago servicio agua SEDAPAL', monto: 85.00 },
+        { user_id: userId, cuenta_id: cc.id, tipo: 'credito', descripcion: 'Transferencia recibida', monto: 500.00 },
+        { user_id: userId, cuenta_id: cc.id, tipo: 'debito', descripcion: 'Compra supermercado WONG', monto: 230.50 },
+        { user_id: userId, cuenta_id: cc.id, tipo: 'debito', descripcion: 'Pago Netflix', monto: 39.90 },
+        { user_id: userId, cuenta_id: cc.id, tipo: 'credito', descripcion: 'Depósito sueldo', monto: 3500.00 },
+        { user_id: userId, cuenta_id: cc.id, tipo: 'debito', descripcion: 'Pago luz ENEL', monto: 120.00 },
+        { user_id: userId, cuenta_id: cc.id, tipo: 'credito', descripcion: 'Devolución compra', monto: 150.00 }
+      );
+    }
+    
+    if (ca) {
+      txns.push(
+        { user_id: userId, cuenta_id: ca.id, tipo: 'credito', descripcion: 'Depósito ahorro programado', monto: 1000.00 }
+      );
+    }
+    
+    if (txns.length > 0) {
+      const { error: errorTxns } = await supabase.from('transacciones').insert(txns);
+      if (errorTxns) {
+        console.error('Error creando transacciones:', errorTxns);
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error en crearCuentasDemo:', error);
+  }
+}
+
+// Manejar el submit del formulario
+async function handleSubmit(e) {
+  e.preventDefault();
+  
+  if (!validarFormulario()) {
+    return;
+  }
+  
+  const nombre = document.getElementById('nombre').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  
+  // Ocultar alertas previas
+  document.getElementById('alertError').classList.add('d-none');
+  document.getElementById('alertSuccess').classList.add('d-none');
+  
+  // Mostrar spinner
+  setLoading(true);
+  
+  try {
+    // Crear usuario en Supabase Auth
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: nombre }
+      }
+    });
+    
+    if (error) {
+      let msg = 'Error al crear la cuenta.';
+      if (error.message.includes('already registered')) {
+        msg = 'Este correo ya está registrado.';
+      } else if (error.message.includes('password')) {
+        msg = 'La contraseña debe tener al menos 8 caracteres.';
+      }
+      showError(msg);
+      setLoading(false);
+      return;
+    }
+    
+    // Éxito - crear cuentas demo
+    if (data.user) {
+      await crearCuentasDemo(data.user.id);
+    }
+    
+    showSuccess();
+    setLoading(false);
+    
+  } catch (error) {
+    console.error('Error en registro:', error);
+    showError('Ocurrió un error inesperado. Intenta nuevamente.');
+    setLoading(false);
+  }
+}
+
+// Inicializar
+function init() {
+  setupEventListeners();
+}
+
+// Iniciar aplicación
+init();
